@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, ElementRef, ViewChild, Renderer2 } from '@angular/core';
 import { GoogleMapsService } from 'src/app/services/google-maps/google-maps.service';
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-map',
@@ -11,12 +12,10 @@ export class MapComponent  implements OnInit {
 
   @ViewChild('map', {static: true}) mapElementRef!: ElementRef;
   googleMaps: any;
-  source: any = {lat: 28.704060, lng: 77.102493};
-  dest: any = {lat: 28.735517, lng: 77.102090};
   map: any;
+  coordinates : any;
   directionsService: any;
   directionsDisplay: any;
-
   source_marker: any;
   destination_marker: any;
   intersectionObserver: any;
@@ -24,7 +23,7 @@ export class MapComponent  implements OnInit {
 
   private maps = inject(GoogleMapsService);
   private renderer = inject(Renderer2);
-  constructor() { }
+ constructor() {}
 
   ngOnInit() {
   }
@@ -44,6 +43,8 @@ export class MapComponent  implements OnInit {
 
   async loadMap(){
     try{
+      this.coordinates = await Geolocation.getCurrentPosition();
+      console.log('Current position:', this.coordinates);
       let googleMaps: any = await this.maps.loadGoogleMaps();
       this.googleMaps = googleMaps;
 
@@ -57,52 +58,32 @@ export class MapComponent  implements OnInit {
       console.log(this.AdvancedMarkerElement);
 
       const map = new Map(mapEl, {
-        center: {lat: this.source.lat, lng: this.source.lng},
+        center: {lat: this.coordinates.coords.longitude, lng: this.coordinates.coords.latitude},
         disableDefaultUI: true,
-        zoom: 13,
+        zoom: 12,
         mapId: 'live_track'
       });
-
+      console.log('Current position:', this.coordinates);
       this.map = map;
 
       const sourceIconUrl = 'assets/imgs/Car.png';
       const destinationIconUrl = 'assets/imgs/Pin.png';
+      
 
       const source_position = new googleMaps.LatLng(
-        this.source.lat,
-        this.source.lng
+        this.coordinates.coords.latitude,
+        this.coordinates.coords.longitude
       );
-      const destination_position = new googleMaps.LatLng(
-        this.dest.lat,
-        this.dest.lng
-      );
+
+      console.log('Current position:', this.coordinates);
 
       await this.addMarker(
         source_position,
-        sourceIconUrl,
+        destinationIconUrl,
         true
       );
-
-      await this.addMarker(
-        destination_position,
-        destinationIconUrl
-      );
-
+      
       this.directionsService = new googleMaps.DirectionsService();
-      this.directionsDisplay = new googleMaps.DirectionsRenderer({
-        map: map
-      });
-
-      this.directionsDisplay.setOptions({
-        polylineOptions:{
-          strokeWeight: 4,
-          strokeOpacity: 1,
-          strokeColor: 'red'
-        },
-        suppressMarkers: true
-      });
-
-     await this.drawRoute();
 
       this.map.setCenter(source_position);
       this.renderer.addClass(mapEl, 'visible');
@@ -146,10 +127,10 @@ export class MapComponent  implements OnInit {
     }
   }
 
- drawRoute(){
+ /*drawRoute(){
     this.directionsService.route(
       {
-        origin : this.source,
+        origin : this.coordinates,
         destination: this.dest,
         travelMode : 'DRIVING',
         provideRouteAlternatives: true
@@ -236,5 +217,5 @@ export class MapComponent  implements OnInit {
       }
     };
     animate();
-  }
+  }*/
 }
